@@ -14,7 +14,6 @@
 #include <asm-offsets.h>
 #include <config.h>
 #include <linux/linkage.h>
-
 ENTRY(lowlevel_init)
 	/*
 	 * Setup a temporary stack. Global data is not available yet.

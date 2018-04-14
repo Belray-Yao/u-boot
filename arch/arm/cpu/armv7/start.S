@@ -17,6 +17,7 @@
 #include <config.h>
 #include <asm/system.h>
 #include <linux/linkage.h>
+#include <mach/cpu.h>
 
 /*************************************************************************
  *
@@ -66,6 +67,79 @@ save_boot_params_ret:
 	/* the mask ROM code should have PLL and others stable */
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT
 	bl	cpu_init_cp15
+
+#ifdef CONFIG_TARGET_ITOP4412
+#define BOOT_ONENAND    0x1
+#define BOOT_NAND       0x40000
+#define BOOT_MMCSD      0x3
+#define BOOT_NOR        0x4
+#define BOOT_SEC_DEV    0x5
+#define BOOT_EMMC43     0x6
+#define BOOT_EMMC441    0x7
+
+#define OMR_OFFSET 		0
+#define INF_REG_BASE	0x10020800
+#define INF_REG3_OFFSET	0x0c
+
+	/* LED TEST CODE */
+	#if 0
+    ldr r0, =0x11000080
+    ldr r1, [r0]
+    bic r1, r1, #0xf00
+    orr r1, r1, #0x100
+    str r1, [r0]
+    #endif
+
+    /* Read booting information */
+    ldr r0, =EXYNOS4_POWER_BASE
+    ldr r1, [r0,#OMR_OFFSET]
+    bic r2, r1, #0xffffffc1
+
+    /* NAND BOOT */
+@   cmp r2, #0x0        @ 512B 4-cycle
+@   moveq   r3, #BOOT_NAND
+
+@   cmp r2, #0x2        @ 2KB 5-cycle
+@   moveq   r3, #BOOT_NAND
+
+@   cmp r2, #0x4        @ 4KB 5-cycle   8-bit ECC
+@   moveq   r3, #BOOT_NAND
+
+    cmp     r2, #0xA
+        moveq   r3, #BOOT_ONENAND
+
+@   cmp r2, #0x6        @ 4KB 5-cycle   16-bit ECC
+@   moveq   r3, #BOOT_NAND
+
+    /* SD/MMC BOOT */
+    cmp     r2, #0x4
+        moveq   r3, #BOOT_MMCSD 
+
+    /* eMMC4.3 BOOT */
+    cmp     r2, #0x6
+    moveq   r3, #BOOT_EMMC43
+
+    /* eMMC441 BOOT */
+    cmp     r2, #0x28
+    moveq   r3, #BOOT_EMMC441
+    
+        /* NOR BOOT */
+@   cmp     r2, #0x14
+@   moveq   r3, #BOOT_NOR   
+
+    /* For second device booting */
+    /* OneNAND BOOTONG failed */
+@   cmp     r2, #0x8
+@   moveq   r3, #BOOT_SEC_DEV
+
+    /* Uart BOOTONG failed */
+@   cmp     r2, #(0x1<<4)
+@   moveq   r3, #BOOT_SEC_DEV
+    
+    ldr r0, =INF_REG_BASE
+    str r3, [r0, #INF_REG3_OFFSET]
+#endif
+
 #ifndef CONFIG_SKIP_LOWLEVEL_INIT_ONLY
 	bl	cpu_init_crit
 #endif
