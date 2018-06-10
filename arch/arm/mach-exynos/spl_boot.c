@@ -16,7 +16,7 @@
 #include <asm/arch/spl.h>
 #include <asm/arch/spi.h>
 #include <debug_uart.h>
-
+#include <led_test.h>
 #include "common_setup.h"
 #include "clock_init.h"
 
@@ -228,6 +228,7 @@ void copy_uboot_to_ram(void)
 		break;
 #endif
 	case BOOT_MODE_SD:
+		led_test();
 		offset = BL2_START_OFFSET;
 		size = BL2_SIZE_BLOC_COUNT;
 		copy_bl2 = get_irom_func(MMC_INDEX);
@@ -269,6 +270,7 @@ void copy_uboot_to_ram(void)
          * from 0x43e00000.
          *
          */
+		led1_test();
         unsigned int i, count = 0;
         unsigned char *buffer = (unsigned char *)0x02050000;
         unsigned char *dst = (unsigned char *)CONFIG_SYS_TEXT_BASE;
@@ -283,7 +285,16 @@ void copy_uboot_to_ram(void)
 			{
                 *dst++ = buffer[i];
             }
+			if (count%2)
+			{
+				led2_test();
+			}
+			else
+			{
+				led1_test();
+			}
         }
+		led_test();
 	}
 #else
 	if (copy_bl2)
@@ -324,9 +335,11 @@ void board_init_f(unsigned long bootflag)
 	setup_global_data(&local_gd);
 
 	if (do_lowlevel_init())
+	{
 		power_exit_wakeup();
+	}
 
-	printascii("\r\nU-Boot SPL " PLAIN_VERSION " (" U_BOOT_DATE " - " U_BOOT_TIME ")\r\n");
+	//printascii("\r\nU-Boot SPL " PLAIN_VERSION " (" U_BOOT_DATE " - " U_BOOT_TIME ")\r\n");
 
 	copy_uboot_to_ram();
 
